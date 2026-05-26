@@ -9,19 +9,19 @@ class EventViewModel extends ChangeNotifier {
   // Função para criar um novo evento
   Future<void> createEvent(String name, String code, DateTime date, String organizerId) async {
     isLoading = true;
-    notifyListeners(); // Avisa a tela para mostrar a bolinha de carregamento
+    notifyListeners(); // Avisa o ecrã para mostrar a bolinha de carregamento
 
     try {
-      // 1. Aponta para a "pasta" de eventos no Firebase (se não existir, ele cria na hora)
+      // 1. Aponta para a coleção de eventos no Firebase
       CollectionReference events = _firestore.collection('events');
 
       // 2. Salva os dados do evento novo
       await events.add({
-        'name': name,
+        'title': name, // CORREÇÃO: Alterado de 'name' para 'title' para coincidir com o EventModel e as Views!
         'code': code, // Ex: "TECH26"
-        'date': date.toIso8601String(), // Salva a data num formato que o banco entende
-        'organizerId': organizerId, // Vincula o evento ao organizador que criou
-        'createdAt': FieldValue.serverTimestamp(), // Marca a hora exata da criação
+        'date': date.toIso8601String(), // Guarda a data num formato compatível
+        'organizerId': organizerId, // Vincula o evento ao organizador que o criou
+        'createdAt': FieldValue.serverTimestamp(), // Marca a hora exata do registo
       });
 
       print("Evento adicionado com sucesso no Firebase!");
@@ -30,7 +30,7 @@ class EventViewModel extends ChangeNotifier {
       print("Erro ao criar evento: $e");
     } finally {
       isLoading = false;
-      notifyListeners(); // Avisa a tela que terminou de carregar
+      notifyListeners(); // Avisa o ecrã que terminou de carregar
     }
   }
 }

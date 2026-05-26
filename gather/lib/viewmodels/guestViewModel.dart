@@ -79,6 +79,14 @@ class GuestViewModel extends ChangeNotifier {
     }
   }
 
+  // ==========================================
+  // FUNÇÃO ADICIONADA PARA LIMPAR O EVENTO
+  // ==========================================
+  void clearEvent() {
+    _currentEvent = null;
+    notifyListeners();
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

@@ -21,8 +21,26 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
+  // ==========================================
+  // NOVA FUNÇÃO: Registrar Organizador
+  // ==========================================
+  Future<bool> registerOrganizer(String email, String password) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await _authService.registerOrganizer(email, password);
+      _setLoading(false);
+      return true; // Cadastro com sucesso
+    } catch (e) {
+      _errorMessage = "Erro ao criar conta. Verifique os dados ou se o email já existe.";
+      _setLoading(false);
+      return false; // Falha no cadastro
+    }
+  }
+
   Future<bool> loginOrganizer(String email, String password) async {
     _setLoading(true);
+    _errorMessage = null; // Limpa erros antigos
     try {
       await _authService.loginOrganizer(email, password);
       _setLoading(false);
@@ -36,6 +54,7 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> loginGuest() async {
     _setLoading(true);
+    _errorMessage = null;
     try {
       await _authService.loginGuestAnonymously();
       _setLoading(false);
@@ -49,6 +68,14 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authService.logout();
+  }
+
+  // ==========================================
+  // FUNÇÃO PARA LIMPAR O ERRO DA TELA
+  // ==========================================
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   void _setLoading(bool value) {

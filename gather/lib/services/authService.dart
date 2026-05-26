@@ -9,6 +9,21 @@ class AuthService {
   // Retorna o usuário logado atual
   User? get currentUser => _auth.currentUser;
 
+  // ==========================================
+  // NOVA FUNÇÃO: Registrar Organizador
+  // ==========================================
+  Future<User?> registerOrganizer(String email, String password) async {
+    try {
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return result.user;
+    } catch (e) {
+      throw Exception('Erro ao registrar: $e');
+    }
+  }
+
   // Login para o Organizador (Email e Senha)
   Future<User?> loginOrganizer(String email, String password) async {
     try {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart'; // Nosso pacote de gráficos
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../viewmodels/organizerViewModel.dart';
 
@@ -9,10 +9,12 @@ class EventView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Usamos o watch para reconstruir a tela quando as stats atualizarem
     final viewModel = context.watch<OrganizerViewModel>();
     final event = viewModel.selectedEvent;
     final stats = viewModel.stats;
+    
+    // [RESPONSIVO] Captura a largura atual da tela
+    final screenWidth = MediaQuery.of(context).size.width;
 
     if (event == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
@@ -27,55 +29,60 @@ class EventView extends StatelessWidget {
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 16.0),
-            child: Icon(Icons.nightlight_round, color: Colors.grey), // Botão de tema do seu protótipo
+            child: Icon(Icons.nightlight_round, color: Colors.grey),
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cabeçalho do Evento
-            Text(event.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF161730))),
-            const SizedBox(height: 12),
-            Row(
+      body: Center( // [RESPONSIVO]
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000), // [RESPONSIVO] Limite para PC
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFF00D1FF), borderRadius: BorderRadius.circular(20)),
-                  child: Text(event.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                // Cabeçalho do Evento
+                Text(event.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF161730))),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xFF00D1FF), borderRadius: BorderRadius.circular(20)),
+                      child: Text(event.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(formattedDate, style: const TextStyle(color: Colors.grey)),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(formattedDate, style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 32),
+
+                // 1. Cards Superiores - Passamos a largura da tela
+                _buildSummaryCards(stats, screenWidth),
+                const SizedBox(height: 32),
+
+                // 2. Gráfico de Pizza (AGORA SÓ COM AS PORCENTAGENS CORRETAS)
+                _buildChartCard(
+                  title: 'Distribuição de Restrições Alimentares',
+                  child: _buildPieChart(stats.restrictionDistribution),
+                ),
+                const SizedBox(height: 32),
+
+                // 3. Gráfico de Barras Vertical
+                _buildChartCard(
+                  title: 'Registros por Dia',
+                  child: _buildBarChart(stats.registrationsPerDay),
+                ),
+                const SizedBox(height: 32),
+
+                // 4. Gráfico de Barras Horizontal
+                _buildChartCard(
+                  title: 'Status de Confirmações',
+                  child: _buildHorizontalBars(stats.confirmed, stats.pending, stats.totalExpected),
+                ),
               ],
             ),
-            const SizedBox(height: 32),
-
-            // 1. Cards Superiores (Confirmados, Restrições, Pendentes)
-            _buildSummaryCards(stats),
-            const SizedBox(height: 32),
-
-            // 2. Gráfico de Pizza (Distribuição de Restrições)
-            _buildChartCard(
-              title: 'Distribuição de Restrições Alimentares',
-              child: _buildPieChart(stats.restrictionDistribution),
-            ),
-            const SizedBox(height: 32),
-
-            // 3. Gráfico de Barras Vertical (Registros por Dia)
-            _buildChartCard(
-              title: 'Registros por Dia',
-              child: _buildBarChart(stats.registrationsPerDay),
-            ),
-            const SizedBox(height: 32),
-
-            // 4. Gráfico de Barras Horizontal (Status de Confirmações)
-            _buildChartCard(
-              title: 'Status de Confirmações',
-              child: _buildHorizontalBars(stats.confirmed, stats.pending, stats.totalExpected),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -85,40 +92,53 @@ class EventView extends StatelessWidget {
   // COMPONENTES DA INTERFACE
   // =====================================
 
-  Widget _buildSummaryCards(var stats) {
-    return Row(
-      children: [
-        _buildMiniCard('Confirmados', stats.confirmed.toString(), Icons.people, const Color(0xFF00D1FF), const Color(0xFFE0F7FA)),
-        const SizedBox(width: 12),
-        _buildMiniCard('Com Restrições', stats.withRestrictions.toString(), Icons.restaurant, const Color(0xFF161730), const Color(0xFFE8EAF6)),
-        const SizedBox(width: 12),
-        _buildMiniCard('Pendentes', stats.pending.toString(), Icons.error_outline, Colors.grey, Colors.grey.shade200),
-      ],
-    );
+  Widget _buildSummaryCards(var stats, double screenWidth) {
+    bool isMobile = screenWidth < 600;
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildMiniCard('Confirmados', stats.confirmed.toString(), Icons.people, const Color(0xFF00D1FF), const Color(0xFFE0F7FA)),
+          const SizedBox(height: 12),
+          _buildMiniCard('Com Restrições', stats.withRestrictions.toString(), Icons.restaurant, const Color(0xFF161730), const Color(0xFFE8EAF6)),
+          const SizedBox(height: 12),
+          _buildMiniCard('Pendentes', stats.pending.toString(), Icons.error_outline, Colors.grey, Colors.grey.shade200),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          Expanded(child: _buildMiniCard('Confirmados', stats.confirmed.toString(), Icons.people, const Color(0xFF00D1FF), const Color(0xFFE0F7FA))),
+          const SizedBox(width: 12),
+          Expanded(child: _buildMiniCard('Com Restrições', stats.withRestrictions.toString(), Icons.restaurant, const Color(0xFF161730), const Color(0xFFE8EAF6))),
+          const SizedBox(width: 12),
+          Expanded(child: _buildMiniCard('Pendentes', stats.pending.toString(), Icons.error_outline, Colors.grey, Colors.grey.shade200)),
+        ],
+      );
+    }
   }
 
   Widget _buildMiniCard(String title, String value, IconData icon, Color iconColor, Color bgColor) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(backgroundColor: bgColor, radius: 14, child: Icon(icon, size: 16, color: iconColor)),
-                const SizedBox(width: 8),
-                Expanded(child: Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF161730))),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(backgroundColor: bgColor, radius: 14, child: Icon(icon, size: 16, color: iconColor)),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF161730))),
+        ],
       ),
     );
   }
@@ -142,30 +162,93 @@ class EventView extends StatelessWidget {
     );
   }
 
-  // Gráfico de Pizza
+  // ==========================================
+  // GRÁFICO DE PIZZA CORRIGIDO
+  // ==========================================
   Widget _buildPieChart(Map<String, double> data) {
     if (data.isEmpty) return const SizedBox(height: 200, child: Center(child: Text("Sem restrições relatadas ainda.")));
 
     List<PieChartSectionData> sections = [];
-    List<Color> colors = [const Color(0xFF00D1FF), const Color(0xFF161730), Colors.grey, Colors.cyan.shade200, Colors.blueGrey];
+    List<Widget> legendItems = [];
+
+    List<Color> colors = [
+      const Color(0xFF00D1FF), 
+      const Color(0xFF161730), 
+      Colors.teal,
+      Colors.orange,
+      Colors.cyan.shade200, 
+      Colors.indigo,
+      Colors.pink,
+      Colors.blueGrey,
+    ];
     int colorIndex = 0;
 
     data.forEach((key, value) {
+      Color sliceColor = colors[colorIndex % colors.length];
+
+      // Como o dado 'value' já é a porcentagem (ex: 20.0), usamos direto no FL Chart
       sections.add(
         PieChartSectionData(
-          color: colors[colorIndex % colors.length],
+          color: sliceColor,
           value: value,
-          title: '$key\n${value.toInt()}%',
-          radius: 80,
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+          title: '${value.toInt()}%',
+          radius: 70,
+          titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       );
+
+      // Legenda mostra o nome da restrição e a porcentagem formatada
+      legendItems.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Container(width: 12, height: 12, decoration: BoxDecoration(color: sliceColor, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$key: ${value.toStringAsFixed(1)}%',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF161730)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
       colorIndex++;
     });
 
-    return SizedBox(
-      height: 250,
-      child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 0, sections: sections)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 500) {
+          return Column(
+            children: [
+              SizedBox(height: 200, child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 0, sections: sections))),
+              const SizedBox(height: 32),
+              ...legendItems,
+            ],
+          );
+        } else {
+          return Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: SizedBox(height: 200, child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 0, sections: sections))),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: legendItems,
+                ),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -214,9 +297,9 @@ class EventView extends StatelessWidget {
     );
   }
 
-  // Gráfico de Barras Horizontal (Feito com containers para ficar idêntico ao seu design)
+  // Gráfico de Barras Horizontal
   Widget _buildHorizontalBars(int confirmados, int pendentes, int total) {
-    if (total == 0) total = 1; // Previne divisão por zero
+    if (total == 0) total = 1; 
 
     return Column(
       children: [

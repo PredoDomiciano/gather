@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'viewmodels/authViewModel.dart';
 import 'viewmodels/guestViewModel.dart';
 import 'viewmodels/organizerViewModel.dart';
-import 'viewmodels/eventViewModel.dart'; 
+import 'viewmodels/eventViewModel.dart';
 import 'package:intl/date_symbol_data_local.dart'; // <-- 1. Adicione esta linha
 // Importe suas Views
 import 'views/homeView.dart';
@@ -14,7 +14,7 @@ import 'views/homeView.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-  
+
   // APENAS UMA INICIALIZAÇÃO AQUI (A versão hardcoded para a Web):
   await Firebase.initializeApp(
     options: const FirebaseOptions(
@@ -33,7 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => GuestViewModel()),
         ChangeNotifierProvider(create: (_) => OrganizerViewModel()),
-        ChangeNotifierProvider(create: (_) => EventViewModel()), 
+        ChangeNotifierProvider(create: (_) => EventViewModel()),
       ],
       child: const GatherApp(),
     ),
@@ -57,7 +57,7 @@ class GatherApp extends StatelessWidget {
         ),
         fontFamily: 'Inter',
       ),
-      home: const HomeView(), 
+      home: const HomeView(),
     );
   }
 }
