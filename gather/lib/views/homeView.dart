@@ -51,6 +51,52 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  // Método extraído para processar o formulário (Login ou Cadastro)
+  Future<void> _submitForm(AuthViewModel authViewModel) async {
+    if (authViewModel.isLoading) return;
+
+    if (_isLogin) {
+      bool success = await authViewModel.loginOrganizer(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrganizerView()),
+        );
+      }
+    } else {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('As senhas não coincidem!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      bool success = await authViewModel.registerOrganizer(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conta criada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrganizerView()),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authViewModel = Provider.of<AuthViewModel>(context);
@@ -90,6 +136,7 @@ class _HomeViewState extends State<HomeView> {
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next, // Adicionado para pular para a senha
                     decoration: _buildInputDecoration('Digite seu email', Icons.email_outlined),
                   ),
                   const SizedBox(height: 16),
@@ -99,6 +146,12 @@ class _HomeViewState extends State<HomeView> {
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
+                    textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next, // Adicionado
+                    onSubmitted: (value) {
+                      if (_isLogin) {
+                        _submitForm(authViewModel); // Executa o login ao dar enter
+                      }
+                    },
                     decoration: _buildInputDecoration('Digite sua senha', Icons.lock_outline),
                   ),
                   const SizedBox(height: 16),
@@ -109,6 +162,10 @@ class _HomeViewState extends State<HomeView> {
                     TextField(
                       controller: _confirmPasswordController,
                       obscureText: true,
+                      textInputAction: TextInputAction.done, // Adicionado
+                      onSubmitted: (value) {
+                        _submitForm(authViewModel); // Executa o cadastro ao dar enter
+                      },
                       decoration: _buildInputDecoration('Repita sua senha', Icons.lock_clock_outlined),
                     ),
                     const SizedBox(height: 24),
@@ -127,48 +184,7 @@ class _HomeViewState extends State<HomeView> {
                   ElevatedButton(
                     onPressed: authViewModel.isLoading
                         ? null
-                        : () async {
-                            if (_isLogin) {
-                              bool success = await authViewModel.loginOrganizer(
-                                _emailController.text.trim(),
-                                _passwordController.text.trim(),
-                              );
-                              if (success && mounted) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const OrganizerView()),
-                                );
-                              }
-                            } else {
-                              if (_passwordController.text != _confirmPasswordController.text) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('As senhas não coincidem!'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-                              
-                              bool success = await authViewModel.registerOrganizer(
-                                _emailController.text.trim(),
-                                _passwordController.text.trim(),
-                              );
-                              
-                              if (success && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Conta criada com sucesso!'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const OrganizerView()),
-                                );
-                              }
-                            }
-                          },
+                        : () => _submitForm(authViewModel), // Chama o método extraído
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF161730),
                       padding: const EdgeInsets.symmetric(vertical: 16),

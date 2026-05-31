@@ -6,22 +6,22 @@ class EventViewModel extends ChangeNotifier {
 
   bool isLoading = false;
 
-  // Função para criar um novo evento
-  Future<void> createEvent(String name, String code, DateTime date, String organizerId) async {
+  // Atualizado para receber startDate e endDate
+  Future<void> createEvent(String name, String code, DateTime startDate, DateTime endDate, String organizerId, int maxPeople) async {
     isLoading = true;
-    notifyListeners(); // Avisa o ecrã para mostrar a bolinha de carregamento
+    notifyListeners(); 
 
     try {
-      // 1. Aponta para a coleção de eventos no Firebase
       CollectionReference events = _firestore.collection('events');
 
-      // 2. Salva os dados do evento novo
       await events.add({
-        'title': name, // CORREÇÃO: Alterado de 'name' para 'title' para coincidir com o EventModel e as Views!
-        'code': code, // Ex: "TECH26"
-        'date': date.toIso8601String(), // Guarda a data num formato compatível
-        'organizerId': organizerId, // Vincula o evento ao organizador que o criou
-        'createdAt': FieldValue.serverTimestamp(), // Marca a hora exata do registo
+        'title': name, 
+        'code': code, 
+        'startDate': startDate.toIso8601String(), 
+        'endDate': endDate.toIso8601String(), 
+        'organizerId': organizerId, 
+        'maxPeople': maxPeople, 
+        'createdAt': FieldValue.serverTimestamp(), 
       });
 
       print("Evento adicionado com sucesso no Firebase!");
@@ -30,7 +30,16 @@ class EventViewModel extends ChangeNotifier {
       print("Erro ao criar evento: $e");
     } finally {
       isLoading = false;
-      notifyListeners(); // Avisa o ecrã que terminou de carregar
+      notifyListeners(); 
+    }
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await _firestore.collection('events').doc(eventId).delete();
+      print("Evento excluído com sucesso!");
+    } catch (e) {
+      print("Erro ao excluir evento: $e");
     }
   }
 }

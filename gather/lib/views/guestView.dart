@@ -14,9 +14,12 @@ class _GuestViewState extends State<GuestView> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   
-  List<String> _selectedRestrictions = [];
+  // 1. A lista já inicia com "Sem restrições" selecionado por padrão
+  List<String> _selectedRestrictions = ['Sem restrições'];
 
+  // 2. Adicionado o "Sem restrições" como a primeira opção visual da lista
   final List<Map<String, dynamic>> _restrictionOptions = [
+    {'label': 'Sem restrições', 'icon': Icons.check_circle_outline},
     {'label': 'Vegano', 'icon': Icons.eco_outlined},
     {'label': 'Vegetariano', 'icon': Icons.energy_savings_leaf_outlined},
     {'label': 'Sem Glúten', 'icon': Icons.grass_outlined},
@@ -36,12 +39,27 @@ class _GuestViewState extends State<GuestView> {
     super.dispose();
   }
 
+  // 3. Lógica inteligente para marcar e desmarcar as opções
   void _toggleRestriction(String label) {
     setState(() {
-      if (_selectedRestrictions.contains(label)) {
-        _selectedRestrictions.remove(label);
+      if (label == 'Sem restrições') {
+        // Se clicou em "Sem restrições", limpa tudo e deixa só ele
+        _selectedRestrictions = ['Sem restrições'];
       } else {
-        _selectedRestrictions.add(label);
+        // Se clicou em qualquer outra coisa, tira o "Sem restrições"
+        _selectedRestrictions.remove('Sem restrições');
+
+        // Adiciona ou remove a opção clicada
+        if (_selectedRestrictions.contains(label)) {
+          _selectedRestrictions.remove(label);
+        } else {
+          _selectedRestrictions.add(label);
+        }
+
+        // Se o usuário desmarcou a última opção e a lista ficou vazia, volta pro padrão
+        if (_selectedRestrictions.isEmpty) {
+          _selectedRestrictions.add('Sem restrições');
+        }
       }
     });
   }

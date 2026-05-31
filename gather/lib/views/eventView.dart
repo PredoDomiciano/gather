@@ -1,24 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../viewmodels/organizerViewModel.dart';
+import '../models/guestModel.dart'; 
 
-class EventView extends StatelessWidget {
+class EventView extends StatefulWidget {
   const EventView({super.key});
+
+  @override
+  State<EventView> createState() => _EventViewState();
+}
+
+class _EventViewState extends State<EventView> {
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<OrganizerViewModel>();
     final event = viewModel.selectedEvent;
     final stats = viewModel.stats;
+    final guests = viewModel.guests; 
     
-    // [RESPONSIVO] Captura a largura atual da tela
     final screenWidth = MediaQuery.of(context).size.width;
 
     if (event == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    String formattedDate = DateFormat("dd 'de' MMMM, yyyy", "pt_BR").format(event.date);
+    String formattedDate;
+    if (event.startDate.difference(event.endDate).inDays == 0 && event.startDate.day == event.endDate.day) {
+      formattedDate = DateFormat("dd/MM/yyyy").format(event.startDate);
+    } else {
+      formattedDate = "${DateFormat("dd/MM/yyyy").format(event.startDate)} até ${DateFormat("dd/MM/yyyy").format(event.endDate)}";
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -26,22 +45,15 @@ class EventView extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF161730)),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: Icon(Icons.nightlight_round, color: Colors.grey),
-          )
-        ],
       ),
-      body: Center( // [RESPONSIVO]
+      body: Center( 
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000), // [RESPONSIVO] Limite para PC
+          constraints: const BoxConstraints(maxWidth: 1000), 
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cabeçalho do Evento
                 Text(event.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF161730))),
                 const SizedBox(height: 12),
                 Row(
@@ -57,29 +69,19 @@ class EventView extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // 1. Cards Superiores - Passamos a largura da tela
                 _buildSummaryCards(stats, screenWidth),
                 const SizedBox(height: 32),
 
-                // 2. Gráfico de Pizza (AGORA SÓ COM AS PORCENTAGENS CORRETAS)
-                _buildChartCard(
-                  title: 'Distribuição de Restrições Alimentares',
-                  child: _buildPieChart(stats.restrictionDistribution),
-                ),
-                const SizedBox(height: 32),
-
-                // 3. Gráfico de Barras Vertical
-                _buildChartCard(
-                  title: 'Registros por Dia',
-                  child: _buildBarChart(stats.registrationsPerDay),
-                ),
-                const SizedBox(height: 32),
-
-                // 4. Gráfico de Barras Horizontal
                 _buildChartCard(
                   title: 'Status de Confirmações',
                   child: _buildHorizontalBars(stats.confirmed, stats.pending, stats.totalExpected),
                 ),
+                const SizedBox(height: 32),
+
+                _buildRestrictionsCountSection(guests),
+                const SizedBox(height: 32),
+
+                _buildGuestListSection(guests),
               ],
             ),
           ),
@@ -162,142 +164,6 @@ class EventView extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // GRÁFICO DE PIZZA CORRIGIDO
-  // ==========================================
-  Widget _buildPieChart(Map<String, double> data) {
-    if (data.isEmpty) return const SizedBox(height: 200, child: Center(child: Text("Sem restrições relatadas ainda.")));
-
-    List<PieChartSectionData> sections = [];
-    List<Widget> legendItems = [];
-
-    List<Color> colors = [
-      const Color(0xFF00D1FF), 
-      const Color(0xFF161730), 
-      Colors.teal,
-      Colors.orange,
-      Colors.cyan.shade200, 
-      Colors.indigo,
-      Colors.pink,
-      Colors.blueGrey,
-    ];
-    int colorIndex = 0;
-
-    data.forEach((key, value) {
-      Color sliceColor = colors[colorIndex % colors.length];
-
-      // Como o dado 'value' já é a porcentagem (ex: 20.0), usamos direto no FL Chart
-      sections.add(
-        PieChartSectionData(
-          color: sliceColor,
-          value: value,
-          title: '${value.toInt()}%',
-          radius: 70,
-          titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-      );
-
-      // Legenda mostra o nome da restrição e a porcentagem formatada
-      legendItems.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Row(
-            children: [
-              Container(width: 12, height: 12, decoration: BoxDecoration(color: sliceColor, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '$key: ${value.toStringAsFixed(1)}%',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF161730)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      colorIndex++;
-    });
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 500) {
-          return Column(
-            children: [
-              SizedBox(height: 200, child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 0, sections: sections))),
-              const SizedBox(height: 32),
-              ...legendItems,
-            ],
-          );
-        } else {
-          return Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: SizedBox(height: 200, child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 0, sections: sections))),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: legendItems,
-                ),
-              ),
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  // Gráfico de Barras Vertical
-  Widget _buildBarChart(Map<String, int> data) {
-    if (data.isEmpty) return const SizedBox(height: 200, child: Center(child: Text("Sem registros de convidados.")));
-
-    List<BarChartGroupData> barGroups = [];
-    int xIndex = 0;
-    List<String> labels = [];
-
-    data.forEach((key, value) {
-      labels.add(key);
-      barGroups.add(
-        BarChartGroupData(
-          x: xIndex,
-          barRods: [BarChartRodData(toY: value.toDouble(), color: const Color(0xFF00D1FF), width: 30, borderRadius: BorderRadius.circular(4))],
-        ),
-      );
-      xIndex++;
-    });
-
-    return SizedBox(
-      height: 200,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) => Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(labels[value.toInt()], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ),
-              ),
-            ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          barGroups: barGroups,
-        ),
-      ),
-    );
-  }
-
-  // Gráfico de Barras Horizontal
   Widget _buildHorizontalBars(int confirmados, int pendentes, int total) {
     if (total == 0) total = 1; 
 
@@ -332,6 +198,175 @@ class EventView extends StatelessWidget {
         const SizedBox(width: 8),
         SizedBox(width: 30, child: Text(value.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
       ],
+    );
+  }
+
+  Widget _buildRestrictionsCountSection(List<GuestModel> guests) {
+    Map<String, int> restrictionCounts = {};
+    for (var guest in guests) {
+      for (var restriction in guest.dietaryRestrictions) {
+        if (restriction != 'Sem restrições') {
+          restrictionCounts[restriction] = (restrictionCounts[restriction] ?? 0) + 1;
+        }
+      }
+    }
+
+    return _buildChartCard(
+      title: 'Restrições Alimentares Relatadas',
+      child: restrictionCounts.isEmpty
+          ? const Text('Nenhuma restrição alimentar registrada.', style: TextStyle(color: Colors.grey))
+          : Wrap(
+              spacing: 12, 
+              runSpacing: 12, 
+              children: restrictionCounts.entries.map((entry) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F7FA), 
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF00D1FF), width: 1), 
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.restaurant_menu, size: 16, color: Color(0xFF161730)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${entry.key}: ',
+                        style: const TextStyle(color: Color(0xFF161730), fontSize: 14),
+                      ),
+                      Text(
+                        '${entry.value}', 
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF161730), fontSize: 16),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+
+  Widget _buildGuestListSection(List<GuestModel> allGuests) {
+    final filteredGuests = allGuests.where((guest) {
+      final guestName = guest.name.toLowerCase(); 
+      return guestName.contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Theme( 
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: const Text(
+            'Lista de Convidados Registrados',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF161730)),
+          ),
+          childrenPadding: const EdgeInsets.all(16),
+          children: [
+            TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value; 
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Pesquisar convidado por nome...',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FB),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            if (filteredGuests.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Nenhum convidado encontrado.', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true, 
+                physics: const NeverScrollableScrollPhysics(), 
+                itemCount: filteredGuests.length,
+                itemBuilder: (context, index) {
+                  final guest = filteredGuests[index];
+                  
+                  final actualRestrictions = guest.dietaryRestrictions.where((r) => r != 'Sem restrições').toList();
+                  
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4), // Dando um respiro maior entre os itens
+                    leading: CircleAvatar(
+                      backgroundColor: guest.status == 'Confirmado' ? const Color(0xFFE0F7FA) : Colors.grey.shade200,
+                      child: Icon(
+                        guest.status == 'Confirmado' ? Icons.check : Icons.person,
+                        color: guest.status == 'Confirmado' ? const Color(0xFF00D1FF) : Colors.grey,
+                      ),
+                    ),
+                    title: Text(guest.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    
+                    // =====================================
+                    // AQUI FOI ALTERADO: AGORA MOSTRA AS OBSERVAÇÕES
+                    // =====================================
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            actualRestrictions.isNotEmpty 
+                                ? 'Restrições: ${actualRestrictions.join(", ")}' 
+                                : 'Nenhuma restrição alimentar',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          
+                          // Verificação inteligente: Só desenha a linha de Observações se o convidado 
+                          // preencheu algo e não está vazio!
+                          if (guest.notes != null && guest.notes.toString().trim().isNotEmpty) ...[
+                            const SizedBox(height: 4), // Dá um espacinho da linha de cima
+                            Text(
+                              'Observações: ${guest.notes}',
+                              style: TextStyle(
+                                fontSize: 12, 
+                                fontStyle: FontStyle.italic, // Itálico para diferenciar bem
+                                color: Colors.grey.shade700 // Um pouco mais escuro que a restrição
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: guest.status == 'Confirmado' ? const Color(0xFFE0F7FA) : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8)
+                      ),
+                      child: Text(
+                        guest.status, 
+                        style: TextStyle(
+                          color: guest.status == 'Confirmado' ? const Color(0xFF00D1FF) : Colors.grey, 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.bold
+                        )
+                      )
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

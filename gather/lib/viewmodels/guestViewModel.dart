@@ -64,7 +64,7 @@ class GuestViewModel extends ChangeNotifier {
         eventId: _currentEvent!.id,
         name: name.trim(),
         dietaryRestrictions: restrictions,
-        additionalNotes: notes,
+        notes: notes, // CORREÇÃO: Alterado para 'notes: notes'
         status: 'Confirmado', // Podemos assumir que ao responder ele confirmou
         registrationDate: DateTime.now(),
       );
