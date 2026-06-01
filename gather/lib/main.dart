@@ -1,31 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-
-// Importe seus ViewModels
+import 'package:flutter/foundation.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'viewmodels/authViewModel.dart';
 import 'viewmodels/guestViewModel.dart';
 import 'viewmodels/organizerViewModel.dart';
 import 'viewmodels/eventViewModel.dart';
-import 'package:intl/date_symbol_data_local.dart'; // <-- 1. Adicione esta linha
-// Importe suas Views
 import 'views/homeView.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
 
-  // APENAS UMA INICIALIZAÇÃO AQUI (A versão hardcoded para a Web):
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: 'AIzaSyAVSm0XiOyPv-TLHbReY9HldbxKA1qjebk',
-      appId: '1:631991508995:web:256c00844feb52b017ae36',
-      messagingSenderId: '631991508995',
-      projectId: 'gather-app-f9a4a',
-      authDomain: 'gather-app-f9a4a.firebaseapp.com',
-      storageBucket: 'gather-app-f9a4a.firebasestorage.app',
-    ),
-  );
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'AIzaSyAVSm0XiOyPv-TLHbReY9HldbxKA1qjebk',
+        appId: '1:631991508995:web:256c00844feb52b017ae36',
+        messagingSenderId: '631991508995',
+        projectId: 'gather-app-f9a4a',
+        authDomain: 'gather-app-f9a4a.firebaseapp.com',
+        storageBucket: 'gather-app-f9a4a.firebasestorage.app',
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
 
   runApp(
     MultiProvider(
