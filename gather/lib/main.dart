@@ -13,20 +13,25 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
 
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: 'AIzaSyAVSm0XiOyPv-TLHbReY9HldbxKA1qjebk',
-        appId: '1:631991508995:web:256c00844feb52b017ae36',
-        messagingSenderId: '631991508995',
-        projectId: 'gather-app-f9a4a',
-        authDomain: 'gather-app-f9a4a.firebaseapp.com',
-        storageBucket: 'gather-app-f9a4a.firebasestorage.app',
-      ),
-    );
-  } else {
-    await Firebase.initializeApp();
-  }
+  // Inicializa o Firebase com as credenciais certas para cada plataforma
+  await Firebase.initializeApp(
+    options: kIsWeb
+        ? const FirebaseOptions(
+            apiKey: 'AIzaSyAVSm0XiOyPv-TLHbReY9HldbxKA1qjebk',
+            appId: '1:631991508995:web:256c00844feb52b017ae36',
+            messagingSenderId: '631991508995',
+            projectId: 'gather-app-f9a4a',
+            authDomain: 'gather-app-f9a4a.firebaseapp.com',
+            storageBucket: 'gather-app-f9a4a.firebasestorage.app',
+          )
+        : const FirebaseOptions(
+            apiKey: 'AIzaSyAVSm0XiOyPv-TLHbReY9HldbxKA1qjebk',
+            appId: '1:631991508995:android:72d829676e184fa917ae36', // ID gerado no padrão Android do seu projeto
+            messagingSenderId: '631991508995',
+            projectId: 'gather-app-f9a4a',
+            storageBucket: 'gather-app-f9a4a.firebasestorage.app',
+          ),
+  );
 
   runApp(
     MultiProvider(
