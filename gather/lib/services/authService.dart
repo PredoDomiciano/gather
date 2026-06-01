@@ -1,30 +1,36 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // <-- 1. Adicione isso
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // <-- 2. Adicione isso
 
-  // Stream para escutar mudanças no estado de autenticação
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Retorna o usuário logado atual
   User? get currentUser => _auth.currentUser;
 
-  // ==========================================
-  // NOVA FUNÇÃO: Registrar Organizador
-  // ==========================================
   Future<User?> registerOrganizer(String email, String password) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      
+      // ==========================================
+      // 3. NOVO: Salva os dados no Firestore também!
+      // ==========================================
+      if (result.user != null) {
+        await _firestore.collection('organizers').doc(result.user!.uid).set({
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
       return result.user;
     } catch (e) {
       throw Exception('Erro ao registrar: $e');
     }
   }
 
-  // Login para o Organizador (Email e Senha)
   Future<User?> loginOrganizer(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
@@ -37,7 +43,6 @@ class AuthService {
     }
   }
 
-  // Login Anônimo para o Convidado (Garante segurança no Firestore)
   Future<User?> loginGuestAnonymously() async {
     try {
       UserCredential result = await _auth.signInAnonymously();
@@ -47,7 +52,6 @@ class AuthService {
     }
   }
 
-  // Sair do aplicativo (Logout)
   Future<void> logout() async {
     try {
       await _auth.signOut();
