@@ -35,7 +35,7 @@ class OrganizerViewModel extends ChangeNotifier {
     
     _guestsSubscription = _eventService.getEventGuests(event.id).listen((guestList) {
       _guests = guestList;
-      _calculateStats(); 
+      _calculateStats();
       notifyListeners();
     });
   }
@@ -45,7 +45,7 @@ class OrganizerViewModel extends ChangeNotifier {
 
     int confirmedCount = 0;
     int withRestrictionsCount = 0;
-    Map<String, double> restrictionDist = {};
+    Map<String, int> restrictionDist = {};
     Map<String, int> regPerDay = {};
 
     for (var guest in _guests) {
@@ -53,10 +53,6 @@ class OrganizerViewModel extends ChangeNotifier {
         confirmedCount++;
       }
 
-      // ==========================================
-      // CORREÇÃO: Filtramos "Sem restrições" da lista 
-      // antes de contar se o convidado tem alergias
-      // ==========================================
       var restricoesReais = guest.dietaryRestrictions.where((r) => r != 'Sem restrições').toList();
 
       if (restricoesReais.isNotEmpty) {
@@ -66,7 +62,7 @@ class OrganizerViewModel extends ChangeNotifier {
           if (restrictionDist.containsKey(restriction)) {
             restrictionDist[restriction] = restrictionDist[restriction]! + 1;
           } else {
-            restrictionDist[restriction] = 1.0; 
+            restrictionDist[restriction] = 1;
           }
         }
       }
@@ -78,11 +74,6 @@ class OrganizerViewModel extends ChangeNotifier {
         regPerDay[dayKey] = 1;
       }
     }
-
-    int totalRestrictions = restrictionDist.values.fold(0, (sum, val) => sum + val.toInt());
-    if (totalRestrictions > 0) {
-      restrictionDist.updateAll((key, value) => (value / totalRestrictions) * 100);
-    }
     
     int totalExpected = _selectedEvent!.maxPeople;
     int realPendingCount = (totalExpected - confirmedCount) > 0 ? (totalExpected - confirmedCount) : 0;
@@ -90,7 +81,7 @@ class OrganizerViewModel extends ChangeNotifier {
     _stats = EventStatsModel(
       totalExpected: totalExpected, 
       confirmed: confirmedCount,
-      withRestrictions: withRestrictionsCount, // Agora envia o número certinho!
+      withRestrictions: withRestrictionsCount,
       pending: realPendingCount, 
       restrictionDistribution: restrictionDist,
       registrationsPerDay: regPerDay,
