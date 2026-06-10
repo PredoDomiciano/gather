@@ -1,4 +1,4 @@
-name: Build Flutter APK
+name: Build APK e Testes de Regressão
 
 on:
   push:
@@ -9,7 +9,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +25,20 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.1" # Versão atualizada para suportar o seu projeto
+          flutter-version: "3.44.1"
           channel: stable
           cache: true
 
       - name: Install dependencies
         working-directory: ./gather
         run: flutter pub get
+
+      # ==================================================
+      # AQUI ESTÁ O SEU TESTE DE REGRESSÃO (CAIXA BRANCA E INTEGRAÇÃO)
+      # ==================================================
+      - name: Validar Regressão (Testes)
+        working-directory: ./gather
+        run: flutter test
 
       - name: Build APK
         working-directory: ./gather
