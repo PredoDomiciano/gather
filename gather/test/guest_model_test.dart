@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-// Ajuste o caminho do import conforme a estrutura das suas pastas
 import 'package:gather/models/guestModel.dart'; 
 
 void main() {
